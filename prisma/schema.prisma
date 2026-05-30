@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  BUYER
+}
+
+enum WishlistStatus {
+  PENDING
+  PAYMENT_CONFIRMED
+  IN_POOL
+  PURCHASED
+}
+
+enum PoolStatus {
+  OPEN
+  PURCHASED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(BUYER)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wishlistItems WishlistItem[]
+  poolItems     PoolItem[]
+}
+
+model Card {
+  id         String   @id @default(cuid())
+  externalId String   @unique
+  name       String
+  nameJp     String?
+  setName    String
+  setId      String
+  number     String?
+  rarity     String?
+  imageUrl   String?
+  price      Decimal? @db.Decimal(10, 2)
+  active     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  wishlistItems WishlistItem[]
+  poolItems     PoolItem[]
+}
+
+model WishlistItem {
+  id        String         @id @default(cuid())
+  userId    String
+  cardId    String
+  quantity  Int            @default(1)
+  status    WishlistStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card      Card       @relation(fields: [cardId], references: [id])
+  poolItems PoolItem[]
+  photos    CardPhoto[]
+}
+
+model PurchasePool {
+  id          String     @id @default(cuid())
+  status      PoolStatus @default(OPEN)
+  notes       String?
+  createdAt   DateTime   @default(now())
+  purchasedAt DateTime?
+
+  items PoolItem[]
+}
+
+model PoolItem {
+  id             String   @id @default(cuid())
+  poolId         String
+  cardId         String
+  wishlistItemId String
+  userId         String
+  quantity       Int      @default(1)
+  createdAt      DateTime @default(now())
+
+  pool         PurchasePool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  card         Card         @relation(fields: [cardId], references: [id])
+  wishlistItem WishlistItem @relation(fields: [wishlistItemId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+}
+
+model CardPhoto {
+  id             String   @id @default(cuid())
+  wishlistItemId String
+  imageUrl       String
+  caption        String?
+  uploadedAt     DateTime @default(now())
+
+  wishlistItem WishlistItem @relation(fields: [wishlistItemId], references: [id], onDelete: Cascade)
+}
