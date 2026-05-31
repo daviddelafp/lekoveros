@@ -1,5 +1,8 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
 import { NextResponse } from "next/server";
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
@@ -12,9 +15,7 @@ export default auth((req) => {
 
   if (isAuthPage) {
     if (isLoggedIn) {
-      return NextResponse.redirect(
-        new URL(isAdmin ? "/admin" : "/catalogo", nextUrl)
-      );
+      return NextResponse.redirect(new URL(isAdmin ? "/admin" : "/catalogo", nextUrl));
     }
     return NextResponse.next();
   }

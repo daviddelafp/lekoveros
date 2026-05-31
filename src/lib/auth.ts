@@ -2,8 +2,10 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { authConfig } from "@/lib/auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -26,31 +28,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!isValid) return null;
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        };
+        return { id: user.id, name: user.name, email: user.email, role: user.role };
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = (user as { role: string }).role;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      session.user.id = token.id as string;
-      session.user.role = token.role as string;
-      return session;
-    },
-  },
-  pages: {
-    signIn: "/login",
-  },
   session: { strategy: "jwt" },
 });
