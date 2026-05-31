@@ -29,8 +29,9 @@ export default function LoginPage() {
     if (result?.error) {
       setError("Email o contraseña incorrectos");
     } else {
-      router.push("/catalogo");
-      router.refresh();
+      // Full page reload so NextAuth client state is completely fresh.
+      // The middleware then redirects to /admin or /catalogo based on role.
+      window.location.href = "/login";
     }
   }
 

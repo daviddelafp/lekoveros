@@ -42,9 +42,7 @@ export default function AdminCatalog({ cards }: { cards: CatalogCard[] }) {
   return (
     <div>
       {cards.length === 0 && (
-        <p className="text-gray-400 text-sm">
-          El catálogo se puebla automáticamente cuando los compradores añaden cartas a su lista.
-        </p>
+        <p className="text-gray-400 text-sm">No hay cartas en el catálogo.</p>
       )}
 
       <div className="bg-white rounded-xl border overflow-hidden">

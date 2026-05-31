@@ -6,4 +6,12 @@ out
 public/uploads
 
 /src/generated/prisma
-prisma/migrations
+
+# scraping debug output
+scripts/debug-*.html
+scripts/debug-*.png
+scripts/catalog-screenshot.png
+scripts/copiapega*.txt
+scripts/screenshot-catalog.mjs
+scripts/scrape-abyss-eye.mjs
+scripts/browser-console-scraper.js

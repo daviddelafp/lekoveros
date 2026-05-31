@@ -1,35 +1,20 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync } from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const prisma = new PrismaClient();
 
-async function seedAdmin() {
-  const password = await bcrypt.hash("admin123", 12);
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@lekoveros.com" },
-    update: {},
-    create: {
-      name: "Administrador",
-      email: "admin@lekoveros.com",
-      password,
-      role: "ADMIN",
-      active: true,
-    },
-  });
-  console.log("Admin:", admin.email);
-}
+async function main() {
+  const raw = readFileSync(path.join(__dirname, "abyss-eye.json"), "utf-8");
+  const data = JSON.parse(raw);
 
-async function seedCards() {
-  const jsonPath = path.join(__dirname, "..", "scripts", "abyss-eye.json");
-  if (!existsSync(jsonPath)) {
-    console.log("scripts/abyss-eye.json not found — skipping card seed");
-    return;
-  }
+  const { set, cards } = data;
 
-  const { set, cards } = JSON.parse(readFileSync(jsonPath, "utf-8"));
-
+  // Upsert the CardSet
   const cardSet = await prisma.cardSet.upsert({
     where: { tcgId: set.setId },
     update: {},
@@ -46,16 +31,23 @@ async function seedCards() {
     },
   });
 
-  let count = 0;
-  for (const card of cards) {
-    if (card.error) continue;
-    const tcgCardId = card.sourceUrl?.match(/\/cards\/(\d+)\//)?.[1];
-    if (!tcgCardId) continue;
+  console.log(`CardSet: ${cardSet.nameEn} (id=${cardSet.id})`);
 
-    const resistance =
-      card.resistance && card.resistance.trim() !== "—" && card.resistance.trim() !== "-"
-        ? card.resistance.trim()
-        : null;
+  let created = 0, updated = 0, skipped = 0;
+
+  for (const card of cards) {
+    if (card.error) { skipped++; continue; }
+
+    // Extract TCGCollector numeric ID from source URL
+    const tcgCardId = card.sourceUrl.match(/\/cards\/(\d+)\//)?.[1];
+    if (!tcgCardId) { console.warn(`No ID found for ${card.sourceUrl}`); skipped++; continue; }
+
+    const externalId = `tcgcollector-${tcgCardId}`;
+
+    // Clean resistance (em-dash variants → null)
+    const resistance = card.resistance && card.resistance.trim() !== "—" && card.resistance.trim() !== "-"
+      ? card.resistance.trim()
+      : null;
 
     const payload = {
       name: card.nameEn ?? "Unknown",
@@ -80,18 +72,16 @@ async function seedCards() {
     };
 
     await prisma.card.upsert({
-      where: { externalId: `tcgcollector-${tcgCardId}` },
+      where: { externalId },
       update: payload,
-      create: { externalId: `tcgcollector-${tcgCardId}`, ...payload },
+      create: { externalId, ...payload },
     });
-    count++;
-  }
-  console.log(`Cards seeded: ${count} (Abyss Eye)`);
-}
 
-async function main() {
-  await seedAdmin();
-  await seedCards();
+    console.log(`  [${card.number ?? "?"}] ${card.nameEn} — ${card.rarity}`);
+    created++;
+  }
+
+  console.log(`\nDone. Created/updated: ${created}, skipped: ${skipped}`);
 }
 
 main()

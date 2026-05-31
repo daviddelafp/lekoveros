@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      new URL("https://images.pokemontcg.io/**"),
+      new URL("https://static.tcgcollector.com/**"),
+    ],
+  },
 };
 
 export default nextConfig;

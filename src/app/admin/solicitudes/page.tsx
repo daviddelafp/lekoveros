@@ -3,12 +3,12 @@ import RequestsManager from "@/components/admin/RequestsManager";
 
 export default async function SolicitudesPage() {
   const requests = await prisma.wishlistItem.findMany({
-    where: { status: "PENDING" },
+    where: { status: { in: ["PENDING", "PAYMENT_CONFIRMED"] } },
     include: {
       user: { select: { id: true, name: true, email: true } },
       card: true,
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ user: { name: "asc" } }, { createdAt: "asc" }],
   });
 
   return (
