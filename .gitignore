@@ -15,3 +15,6 @@ scripts/copiapega*.txt
 scripts/screenshot-catalog.mjs
 scripts/scrape-abyss-eye.mjs
 scripts/browser-console-scraper.js
+
+.vercel
+tsconfig.tsbuildinfo
