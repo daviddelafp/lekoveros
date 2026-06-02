@@ -6,7 +6,7 @@ export default async function CatalogoPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Catálogo de Cartas</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Catálogo de Cartas</h1>
       <CardCatalog userId={session!.user.id} />
     </div>
   );

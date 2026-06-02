@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
@@ -12,14 +13,18 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get("file") as File;
-  const wishlistItemId = formData.get("wishlistItemId") as string;
+  const orderItemId = formData.get("orderItemId") as string;
   const caption = formData.get("caption") as string | null;
+  const finalPriceStr = formData.get("finalPrice") as string | null;
 
-  if (!file || !wishlistItemId) {
+  if (!file || !orderItemId) {
     return NextResponse.json({ error: "Faltan datos" }, { status: 400 });
   }
 
-  const item = await prisma.wishlistItem.findUnique({ where: { id: wishlistItemId } });
+  const item = await prisma.orderItem.findUnique({
+    where: { id: orderItemId },
+    include: { order: true },
+  });
   if (!item) return NextResponse.json({ error: "Item no encontrado" }, { status: 404 });
 
   const bytes = await file.arrayBuffer();
@@ -29,22 +34,46 @@ export async function POST(req: NextRequest) {
   await mkdir(uploadDir, { recursive: true });
 
   const ext = file.name.split(".").pop() ?? "jpg";
-  const filename = `${wishlistItemId}-${Date.now()}.${ext}`;
-  const filepath = path.join(uploadDir, filename);
-  await writeFile(filepath, buffer);
+  const filename = `${orderItemId}-${Date.now()}.${ext}`;
+  await writeFile(path.join(uploadDir, filename), buffer);
 
   const imageUrl = `/uploads/cards/${filename}`;
+  const finalPrice = finalPriceStr ? new Prisma.Decimal(finalPriceStr) : null;
 
-  const photo = await prisma.cardPhoto.create({
-    data: { wishlistItemId, imageUrl, caption },
+  await prisma.$transaction(async (tx) => {
+    await tx.cardPhoto.create({
+      data: { orderItemId, imageUrl, caption: caption || null },
+    });
+
+    await tx.orderItem.update({
+      where: { id: orderItemId },
+      data: {
+        status: "PURCHASED",
+        ...(finalPrice !== null ? { finalPrice } : {}),
+      },
+    });
+
+    // Deduct finalPrice from user wallet
+    if (finalPrice !== null) {
+      await tx.user.update({
+        where: { id: item.order.userId },
+        data: { walletBalance: { decrement: finalPrice } },
+      });
+    }
+
+    // If all non-rejected items are now purchased → COMPLETED
+    const allItems = await tx.orderItem.findMany({ where: { orderId: item.orderId } });
+    const allSettled = allItems.every(
+      (i) => i.status === "REJECTED" || i.status === "PURCHASED" || i.id === orderItemId
+    );
+    if (allSettled) {
+      const hasPurchased = allItems.some((i) => i.status === "PURCHASED" || i.id === orderItemId);
+      await tx.order.update({
+        where: { id: item.orderId },
+        data: { status: hasPurchased ? "COMPLETED" : "REJECTED" },
+      });
+    }
   });
 
-  if (item.status !== "PURCHASED") {
-    await prisma.wishlistItem.update({
-      where: { id: wishlistItemId },
-      data: { status: "PURCHASED" },
-    });
-  }
-
-  return NextResponse.json(photo, { status: 201 });
+  return NextResponse.json({ ok: true, imageUrl }, { status: 201 });
 }

@@ -6,8 +6,10 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const { cardExternalId, cardName, cardSetName, cardSetId, cardNumber, cardRarity, cardImageUrl, quantity, notes } =
-    await req.json();
+  const {
+    cardExternalId, cardName, cardSetName, cardSetId,
+    cardNumber, cardRarity, cardImageUrl, quantity, notes, userPrice,
+  } = await req.json();
 
   let card = await prisma.card.findUnique({ where: { externalId: cardExternalId } });
 
@@ -27,15 +29,11 @@ export async function POST(req: NextRequest) {
   }
 
   const existing = await prisma.wishlistItem.findFirst({
-    where: {
-      userId: session.user.id,
-      cardId: card.id,
-      status: { in: ["PENDING", "PAYMENT_CONFIRMED", "IN_POOL"] },
-    },
+    where: { userId: session.user.id, cardId: card.id },
   });
 
   if (existing) {
-    return NextResponse.json({ error: "Ya tienes esta carta en tu lista" }, { status: 409 });
+    return NextResponse.json({ error: "Ya tienes esta carta en tu carrito" }, { status: 409 });
   }
 
   const item = await prisma.wishlistItem.create({
@@ -44,11 +42,31 @@ export async function POST(req: NextRequest) {
       cardId: card.id,
       quantity: quantity ?? 1,
       notes,
+      userPrice: userPrice ?? null,
     },
     include: { card: true },
   });
 
   return NextResponse.json(item, { status: 201 });
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const { id, userPrice } = await req.json();
+
+  const item = await prisma.wishlistItem.findUnique({ where: { id } });
+  if (!item || item.userId !== session.user.id) {
+    return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  }
+
+  const updated = await prisma.wishlistItem.update({
+    where: { id },
+    data: { userPrice: userPrice !== undefined ? userPrice : item.userPrice },
+  });
+
+  return NextResponse.json(updated);
 }
 
 export async function DELETE(req: NextRequest) {
@@ -60,10 +78,6 @@ export async function DELETE(req: NextRequest) {
   const item = await prisma.wishlistItem.findUnique({ where: { id } });
   if (!item || item.userId !== session.user.id) {
     return NextResponse.json({ error: "No encontrado" }, { status: 404 });
-  }
-
-  if (item.status !== "PENDING") {
-    return NextResponse.json({ error: "No se puede eliminar una solicitud en curso" }, { status: 400 });
   }
 
   await prisma.wishlistItem.delete({ where: { id } });

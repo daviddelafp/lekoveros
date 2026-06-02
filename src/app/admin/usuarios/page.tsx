@@ -10,15 +10,15 @@ export default async function UsuariosPage() {
       name: true,
       email: true,
       active: true,
+      walletBalance: true,
       createdAt: true,
-      _count: { select: { wishlistItems: true } },
     },
   });
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Gestión de Compradores</h1>
-      <UserManager users={users} />
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Gestión de Compradores</h1>
+      <UserManager users={users as never} />
     </div>
   );
 }

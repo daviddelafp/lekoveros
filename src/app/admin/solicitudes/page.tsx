@@ -1,20 +1,36 @@
 import { prisma } from "@/lib/prisma";
-import RequestsManager from "@/components/admin/RequestsManager";
+import OrdersManager from "@/components/admin/OrdersManager";
 
-export default async function SolicitudesPage() {
-  const requests = await prisma.wishlistItem.findMany({
-    where: { status: { in: ["PENDING", "PAYMENT_CONFIRMED"] } },
+export default async function SolicitudesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
+  const { filter = "active" } = await searchParams;
+
+  const orders = await prisma.order.findMany({
     include: {
       user: { select: { id: true, name: true, email: true } },
-      card: true,
+      items: {
+        select: {
+          id: true,
+          quantity: true,
+          status: true,
+          userPrice: true,
+          adminPrice: true,
+        },
+      },
     },
-    orderBy: [{ user: { name: "asc" } }, { createdAt: "asc" }],
+    orderBy: { createdAt: "desc" },
   });
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Solicitudes de Compra</h1>
-      <RequestsManager requests={requests} />
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
+        <p className="text-sm text-gray-500">{orders.length} pedido{orders.length !== 1 ? "s" : ""} en total</p>
+      </div>
+      <OrdersManager orders={orders as never} filter={filter} />
     </div>
   );
 }

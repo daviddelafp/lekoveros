@@ -134,15 +134,15 @@ export default function CardCatalog({ userId }: { userId: string }) {
             )}
 
             <div className="p-2">
-              <p className="font-semibold text-sm leading-tight truncate">{card.name}</p>
+              <p className="font-semibold text-sm leading-tight truncate text-gray-900">{card.name}</p>
               {card.number && (
-                <p className="text-xs text-gray-400">{card.number}</p>
+                <p className="text-xs text-gray-600">{card.number}</p>
               )}
               {card.rarity && (
-                <p className="text-xs text-gray-400 truncate">{card.rarity}</p>
+                <p className="text-xs text-gray-600 truncate">{card.rarity}</p>
               )}
               {card.illustrator && (
-                <p className="text-xs text-gray-300 truncate italic">{card.illustrator}</p>
+                <p className="text-xs text-gray-500 truncate italic">{card.illustrator}</p>
               )}
 
               <button

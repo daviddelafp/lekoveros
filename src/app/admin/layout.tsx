@@ -11,9 +11,9 @@ export default async function AdminLayout({
   if (!session || session.user?.role !== "ADMIN") redirect("/login");
 
   return (
-    <div className="min-h-screen flex">
-      <AdminNav />
-      <main className="flex-1 p-8 overflow-auto">{children}</main>
+    <div className="min-h-screen flex bg-gray-50">
+      <AdminNav adminName={session.user?.name ?? undefined} />
+      <main className="flex-1 p-8 overflow-auto min-w-0">{children}</main>
     </div>
   );
 }
