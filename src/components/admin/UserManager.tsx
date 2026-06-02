@@ -23,7 +23,7 @@ export default function UserManager({ users }: { users: User[] }) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "BUYER" });
 
   async function createUser(e: React.FormEvent) {
     e.preventDefault();
@@ -39,7 +39,7 @@ export default function UserManager({ users }: { users: User[] }) {
     if (!res.ok) {
       setError(data.error);
     } else {
-      setForm({ name: "", email: "", password: "" });
+      setForm({ name: "", email: "", password: "", role: "BUYER" });
       setShowForm(false);
       router.refresh();
     }
@@ -68,7 +68,7 @@ export default function UserManager({ users }: { users: User[] }) {
       {showForm && (
         <form onSubmit={createUser} className="bg-white rounded-xl border p-6 mb-6 space-y-4">
           <h3 className="font-semibold text-gray-900">Crear nuevo comprador</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: "Nombre", key: "name" as const, type: "text" },
               { label: "Email", key: "email" as const, type: "email" },
@@ -85,6 +85,17 @@ export default function UserManager({ users }: { users: User[] }) {
                 />
               </div>
             ))}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Rol</label>
+              <select
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
+              >
+                <option value="BUYER">Comprador</option>
+                <option value="ADMIN">Administrador</option>
+              </select>
+            </div>
           </div>
           {error && <p className="text-red-600 text-sm font-medium">{error}</p>}
           <button

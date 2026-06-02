@@ -9,11 +9,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  const { name, email, password } = await req.json();
+  const { name, email, password, role } = await req.json();
 
   if (!name || !email || !password) {
     return NextResponse.json({ error: "Faltan campos" }, { status: 400 });
   }
+
+  const assignedRole = role === "ADMIN" ? "ADMIN" : "BUYER";
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -22,8 +24,8 @@ export async function POST(req: NextRequest) {
 
   const hashed = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
-    data: { name, email, password: hashed, role: "BUYER" },
-    select: { id: true, name: true, email: true, active: true, createdAt: true },
+    data: { name, email, password: hashed, role: assignedRole },
+    select: { id: true, name: true, email: true, role: true, active: true, createdAt: true },
   });
 
   return NextResponse.json(user, { status: 201 });
